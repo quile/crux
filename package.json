@@ -1,0 +1,30 @@
+{
+  "name": "crux",
+  "version": "0.1.0",
+  "description": "Simple routing by the constellations",
+  "main": "crux.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/quile/crux"
+  },
+  "keywords": [
+    "routing",
+    "routes",
+    "reverse-routing",
+    "route-building",
+    "url-building"
+  ],
+  "author": "Kyle Dawkins <info@kyledawkins.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/quile/crux/issues"
+  },
+  "homepage": "https://github.com/quile/crux",
+  "dependencies": {
+    "mori": "^0.3.2",
+    "path-to-regexp": "^1.1.1"
+  }
+}
