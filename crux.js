@@ -82,7 +82,7 @@ var crux = {
         var path      = mori.first(route);
         var key       = mori.nth(route, 1);
         var action    = mori.nth(route, 2);
-        var subroutes = mori.get(route, 3, null);
+        var subroutes = mori.get(route, 3, null) || [];
         var subPath = path.replace(/^\//, "");
         var fullPath = rootPath + "/" + subPath;
         fullPath = fullPath.replace(/\/$/, "");
@@ -104,10 +104,10 @@ var crux = {
 
     buildRouteTree: function(rootPath, wrapper, routeTree) {
         var partial = function(route) {
-            //console.log(rootPath, wrapper, route);
+            //console.log(route);
             return crux.buildRoute(rootPath, wrapper, route);
         };
-        //console.log("Building ", routeTree);
+        //console.log(">>> ");
         return mori.mapcat(partial, routeTree);
     },
 
