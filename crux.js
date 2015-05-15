@@ -125,43 +125,47 @@ var crux = {
         }, routes, built);
     },
 
-    // Don't need to clone this; it will be handled by
-    // the routing machinery inside express/etc
+    // If you're not using express or some other system to match
+    // URLs to routes, then we can do it for you:
+    routeMatches: function(req, route) {
+        var requestMethod = _keywordise(req.method || ":get");
+        var compiledRoute = mori.get(route, ":route");
+        var method = mori.get(route, ":method");
 
+        if (method === ":all" || method === requestMethod) {
+            var matchResult = mori.get(compiledRoute, ":re").exec(req.url);
+            if (matchResult) {
+                return mori.vector(route, matchResult);
+            }
+        }
+        return null;
+    },
 
-// (defn route-matches?
-//   [request route]
-//   (let [request-method (:request-method request)
-//         compiled-route (:route route)
-//         method (:method route)
-//         method-matches (or (= :all method)
-//                            (= method request-method)
-//                            (and (nil? request-method) (= method :get)))]
-//     (when method-matches
-//       (when-let [match-result (clout/route-matches compiled-route request)]
-//         [route match-result]))))
+    findFirst: function(p, s) {
+        return mori.first(mori.remove(
+            function(x) { return x === null; },
+            mori.map(p, s)
+        ));
+    },
 
+    router: function(routes, defaultAction) {
+        defaultAction = defaultAction || crux.defaultAction;
+        return function(req, res, next) {
+            var orderedRoutes = mori.get(routes, ":order");
+            var match = crux.findFirst(mori.partial(crux.routeMatches, req), orderedRoutes);
+            if (match) {
+                var route = match[0];
+                var params = match[1];
 
-// (defn find-first
-//   [p s]
-//   (first (remove nil? (map p s))))
-
-// (defn router
-//   "takes a request and performs the action associated with the matching route"
-//   ([routes] (router routes default-action))
-//   ([routes default]
-//      (fn [request]
-//        (let [ordered-routes (:order routes)
-//              [route match] (find-first (partial route-matches? request) ordered-routes)]
-//          (if match
-//            (let [request (assoc request :route-params match)
-//                  request (update-in request [:params] #(merge % match))
-//                  action (-> route :action resolve-action)]
-//              (if action
-//                (action request)
-//                (default request)))
-//            {:status 404})))))
-
+                // stuff params into req.params
+                var action = mori.get(route, ":action", defaultAction);
+                if (action) {
+                    action.call(null, req, res, next);
+                }
+            }
+            return res.status(404);
+        };
+    }
 
 // (defn- get-path
 //   [routes key]

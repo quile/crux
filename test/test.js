@@ -1,63 +1,66 @@
 var assert = require("assert");
+var mori   = require("mori");
+var mhttp  = require("node-mocks-http");
 
 var crux = require("../crux");
-var mori = require("mori");
 
 var actions = {
-    home: function(req) {
-        return mori.hashMap(":status", 200,
-                            ":body", "YOU ARE HOME");
+    home: function(req, res, next) {
+        res.send("YOU ARE HOME");
+        next();
     },
 
-    child: function(req) {
-        return mori.hashMap(":status", 200,
-                            ":body", "child playing with routers");
+    child: function(req, res, next) {
+        res.send("child playing with routers");
+        next();
     },
 
-    grandchild: function(req) {
-        return mori.hashMap(":status", 200,
-                            ":body", req.params["face"] + " contains wisdom");
+    grandchild: function(req, res, next) {
+        res.send(req.params["face"] + " contains wisdom");
+        next();
     },
 
-    sibling: function(req) {
-        return mori.hashMap(":status", 200,
-                            ":body", "there is a " + req.params["hand"]);
+    sibling: function(req, res, next) {
+        res.send("there is a " + req.params["hand"]);
+        next();
     },
 
-    parallel: function(req) {
-        return mori.hashMap(":status", 200,
-                            ":body", "ALTERNATE DIMENsion ---------");
+    parallel: function(req, res, next) {
+        res.send("ALTERNATE DIMENsion ---------");
+        next();
     },
 
-    lellarap: function(req) {
-        return mori.hashMap(":status", 200,
-                            ":body", "--------- noisNEMID ETANRETLA");
+    lellarap: function(req, res, next) {
+        res.send("--------- noisNEMID ETANRETLA");
+        next();
     },
 
-    orthogonal: function(req) {
-        return mori.hashMap(":status", 200,
-                            ":body", "ORTHOGONAL TO " + req.params["vector"]);
+    orthogonal: function(req, res, next) {
+        res.send("ORTHOGONAL TO " + req.params["vector"]);
+        next();
     },
 
-    perpendicular: function(req) {
-        return mori.hashMap(":status", 200,
-                            ":body", req.param["tensor"] + " IS PERPENDICULAR TO " + req.params["manifold"]);
+    perpendicular: function(req, res, next) {
+        res.send(req.param["tensor"] + " IS PERPENDICULAR TO " + req.params["manifold"]);
+        next();
     },
 
-    perpendicular: function(req) {
-        return mori.hashMap(":status", 200,
-                            ":body", "What are you doing out here " + req.params["further"]);
+    perpendicular: function(req, res, next) {
+        res.send("What are you doing out here " + req.params["further"]);
+        next();
     },
 
     wrapper: function(handler) {
-        return function(req) {
-            return mori.updateIn(handler(req), [":status"], mori.inc);
+        return function(req, res, next) {
+            //return mori.updateIn(handler(req), [":status"], mori.inc);
+            next();
         };
     },
 
     fascism: function(handler) {
-        return function(req) {
-            return mori.assoc(handler(req), ":status", 11);
+        return function(req, res, next) {
+            //return mori.assoc(handler(req), ":status", 11);
+            next();
         };
     }
 };
@@ -88,11 +91,18 @@ var TEST_ROUTES =
     ["/:further", ":further", "further"]
 ];
 
-var built = crux.buildRoutes(TEST_ROUTES);
 
-//console.log(built);
+describe("basic routing", function() {
+    it("builds routes from route-tree", function() {
+        var built = crux.buildRoutes(TEST_ROUTES);
+        var handler = crux.router(built);
 
-
+        var res = mhttp.createResponse();
+        handler(mhttp.createRequest({"method": "GET", "url": "/"}),
+                res);
+        assert.equal("YOU ARE HOME", res._getData());
+    });
+});
 /*
 (deftest single-route-test
   (let [routes (build-routes [["/" :home home]])
@@ -157,7 +167,3 @@ var built = crux.buildRoutes(TEST_ROUTES);
     (is (= "A sandy sea floor covered in anemone underneath a small boat" (:body (handler {:uri "/ocean/floor"}))))))
 */
 
-describe("basic routing", function() {
-    it("builds routes from route-tree", function() {
-    });
-});

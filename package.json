@@ -26,5 +26,8 @@
   "dependencies": {
     "mori": "^0.3.2",
     "path-to-regexp": "^1.1.1"
+  },
+  "devDependencies": {
+    "node-mocks-http": "^1.4.2"
   }
 }
