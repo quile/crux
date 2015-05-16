@@ -98,8 +98,10 @@ describe("basic routing", function() {
         var handler = crux.router(built);
 
         var res = mhttp.createResponse();
-        handler(mhttp.createRequest({"method": "GET", "url": "/"}),
-                res);
+        handler(mhttp.createRequest({"method": "GET", "url": ""}), res);
+        assert.equal("YOU ARE HOME", res._getData());
+        res = mhttp.createResponse();
+        handler(mhttp.createRequest({"method": "GET", "url": "/"}), res);
         assert.equal("YOU ARE HOME", res._getData());
     });
 });

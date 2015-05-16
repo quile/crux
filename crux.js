@@ -151,11 +151,12 @@ var crux = {
     router: function(routes, defaultAction) {
         defaultAction = defaultAction || crux.defaultAction;
         return function(req, res, next) {
+            next = next || mori.identity;
             var orderedRoutes = mori.get(routes, ":order");
             var match = crux.findFirst(mori.partial(crux.routeMatches, req), orderedRoutes);
             if (match) {
-                var route = match[0];
-                var params = match[1];
+                var route = mori.get(match, 0);
+                var params = mori.get(match, 1);
 
                 // stuff params into req.params
                 var action = mori.get(route, ":action", defaultAction);
