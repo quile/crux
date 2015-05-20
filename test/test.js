@@ -16,6 +16,7 @@ var actions = {
     },
 
     grandchild: function(req, res, next) {
+        debugger;
         res.send(req.params["face"] + " contains wisdom");
         next();
     },
@@ -50,24 +51,27 @@ var actions = {
         next();
     },
 
-    wrapper: function(handler) {
-        return function(req, res, next) {
-            //return mori.updateIn(handler(req), [":status"], mori.inc);
-            next();
-        };
+    further: function(req, res, next) {
+        res.send("What are you doing out here " + req.params["further"] + "?");
+        next();
     },
 
-    fascism: function(handler) {
-        return function(req, res, next) {
-            //return mori.assoc(handler(req), ":status", 11);
-            next();
-        };
-    }
+    wrapper: function(req, res, next) {
+        // increment the status
+        res.status(res._getStatusCode() + 1);
+        next();
+    },
+
+    fascism: function(req, res, next) {
+        res.status(11);
+        next();
+    },
 };
 
 
 var TEST_ROUTES =
 [
+    /*
     ["/", ":home", actions.home,
        [
            ["/child", ":child", actions.child,
@@ -78,20 +82,22 @@ var TEST_ROUTES =
            ["/sibling/:hand", ":sibling", actions.sibling]
        ]
     ],
+     */
     ["/parallel", ":parallel", {":get": actions.parallel,
                                 ":post": actions.lellarap,
                                 ":float": actions.wrapper},
         [
             ["/orthogonal/:vector", ":orthogonal", {":put": actions.orthogonal,
                                                     ":sink": actions.fascism,
-                                                    ":float": mori.comp(actions.wrapper, actions.wrapper)}],
+                                                    ":float": crux.pipeline(actions.wrapper, actions.wrapper)}],
             ["/perpendicular/:tensor/:manifold", ":perpendicular", actions.perpendicular]
         ]
     ],
-    ["/:further", ":further", "further"]
+    ["/:further", ":further", actions.further]
 ];
 
 
+/*
 describe("basic routing", function() {
     it("builds routes from route-tree", function() {
         var built = crux.buildRoutes(TEST_ROUTES);
@@ -105,13 +111,62 @@ describe("basic routing", function() {
         assert.equal("YOU ARE HOME", res._getData());
     });
 });
-/*
-(deftest single-route-test
-  (let [routes (build-routes [["/" :home home]])
-        handler (router routes)]
-    (is (= "YOU ARE HOME" (:body (handler {:uri ""}))))
-    (is (= "YOU ARE HOME" (:body (handler {:uri "/"}))))))
+ */
 
+describe("nested routes", function() {
+    it("builds routes from route-tree", function() {
+        var built = crux.buildRoutes(TEST_ROUTES);
+        var handler = crux.router(built);
+
+        var tests = [
+            /*
+            { req: { url: "" }, res: { status: 200, body: "YOU ARE HOME" } },
+            { req: { url: "/" }, res: { status: 200, body: "YOU ARE HOME" } },
+            { req: { url: "/child" }, res: { status: 200, body: "child playing with routers" } },
+            { req: { url: "/child/" }, res: { status: 200, body: "child playing with routers" } },
+            { req: { url: "/child/grandchild/water" },
+              res: { status: 200, body: "water contains wisdom" } },
+            { req: { url: "/child/grandchild/fire/" },
+              res: { status: 200, body: "fire contains wisdom" } },
+            { req: { url: "/sibling/dragon" },
+              res: { status: 200, body: "there is a dragon" } },
+                */
+            { req: { url: "/parallel/" },
+              res: { status: 201, body: "ALTERNATE DIMENsion ---------" } },
+            { req: { url: "/parallel/", method: "POST" },
+              res: { status: 200, body: "--------- noisNEMID ETANRETLA"} },
+            { req: { url: "/parallel/orthogonal/OVOID", method: "PUT" },
+              res: { status: 14, body: "ORTHOGONAL TO OVOID" } },
+            { req: { url: "/parallel/orthogonal/OVOID", method: "DELETE"},
+              res: { status: 404 } },
+            { req: { url: "/parallel/orthogonal/OVOID" },
+              res: { status: 404 } },
+            { req: { url: "/parallel/perpendicular/A/XORB" },
+              res: { status: 201, body: "A IS PERPENDICULAR TO XORB" } },
+            { req: { url: "/wasteland" },
+              res: { status: 200, body: "What are you doing out here wasteland?" } },
+            { req: { url: "/wasteland/further/nothing/here/monolith" },
+              res: { status: 404 }}
+        ];
+
+        tests.forEach(function(test) {
+            var req = mhttp.createRequest(test.req);
+            var res = mhttp.createResponse();
+
+            handler(req, res);
+
+            if (test.res.status) {
+                assert.equal(test.res.status, res._getStatusCode());
+            }
+            if (test.res.body) {
+                assert.equal(test.res.body, res._getData());
+            }
+            console.log(test);
+        });
+    });
+});
+
+/*
 (deftest build-routes-test
   (let [routes (build-routes test-routes)
         handler (router routes)]

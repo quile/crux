@@ -22,6 +22,13 @@ function _keywordise(word) {
     return word;
 }
 
+function _unkeywordise(keyword) {
+    if (keyword.match(/^:/)) {
+        return keyword.replace(/^:/, "");
+    }
+    return keyword;
+}
+
 var crux = {
     emptyRoutes: function() {
         return newRouteTree(mori.vector(), mori.hashMap());
@@ -51,12 +58,12 @@ var crux = {
         var compiledRoute = this.compileRoute(path);
         var route = newRoute(key, method, path, compiledRoute, action);
         var mapped = mori.assocIn(routes, mori.vector(":mapping", key), route);
-        return mori.updateIn(routes, mori.vector(":order"), mori.conj, route);
+        return mori.updateIn(mapped, mori.vector(":order"), mori.conj, route);
     },
 
-    METHOD_TYPES: mori.set(
+    METHOD_TYPES: mori.set(mori.vector(
         ":all", ":get", ":put", ":post", ":delete", ":options", ":head", ":trace", ":connect", ":patch"
-    ),
+    )),
 
     _actionMethods: function(action) {
         var self = this;
@@ -64,21 +71,34 @@ var crux = {
             return mori.reduce(function(acc, v) {
                 var k = _keywordise(mori.first(v));
                 if (mori.hasKey(self.METHOD_TYPES, k)) {
-                    return mori.assoc(acc, k, mori.nth(v, 1));
+                    return mori.conj(acc, mori.vector(k, mori.nth(v, 1)));
                 }
                 return acc;
-            }, mori.hashMap(), action);
+            }, mori.vector(), action);
         }
         return mori.vector(mori.vector(":all", action));
     },
 
-    composeWrapper: function(float, wrapper, sink) {
-        // ? does this work at all for node?
-        // (apply comp (filter identity [float wrapper sink])))
-        return wrapper;
+    pipeline: function() {
+        var funcs = mori.filter(mori.identity, mori.primSeq(arguments));
+        if (mori.count(funcs) === 1) {
+            return mori.first(funcs);
+        }
+        var jsfuncs = mori.toJs(funcs);
+
+        return function(req, res, next) {
+            var _drain = function() {
+                var f = jsfuncs.shift();
+                if (f) {
+                    return f(req, res, _drain);
+                }
+                return next();
+            };
+            _drain();
+        };
     },
 
-    buildRoute: function(rootPath, wrapper, route) {
+    buildRoute: function(rootPath, pre, post, route) {
         var path      = mori.first(route);
         var key       = mori.nth(route, 1);
         var action    = mori.nth(route, 2);
@@ -86,26 +106,29 @@ var crux = {
         var subPath = path.replace(/^\//, "");
         var fullPath = rootPath + "/" + subPath;
         fullPath = fullPath.replace(/\/$/, "");
-        //var float = null;
-        //var sink = null;
-        //wrapper = crux.composeWrapper(float, wrapper, sink);
-        var children = crux.buildRouteTree(fullPath, wrapper, subroutes);
+        var float = mori.get(action, ":float");
+        var sink = mori.get(action, ":sink");
+        debugger;
+        var floated = crux.pipeline(float, pre);
+        var sunk = crux.pipeline(post, sunk);
+        var children = crux.buildRouteTree(fullPath, floated, sunk, subroutes);
         var actions = crux._actionMethods(action);
+        debugger;
         var routes = mori.map(
             function(stuff) {
                 var method = mori.first(stuff);
                 var action = mori.nth(stuff, 1);
-                return [key, method, fullPath, wrapper(action)];
+                return mori.vector(key, method, fullPath, crux.pipeline(floated, action, sunk));
             },
             actions
         );
         return mori.concat(routes, children);
     },
 
-    buildRouteTree: function(rootPath, wrapper, routeTree) {
+    buildRouteTree: function(rootPath, pre, post, routeTree) {
         var partial = function(route) {
             //console.log(route);
-            return crux.buildRoute(rootPath, wrapper, route);
+            return crux.buildRoute(rootPath, pre, post, route);
         };
         //console.log(">>> ");
         return mori.mapcat(partial, routeTree);
@@ -115,7 +138,7 @@ var crux = {
         routeTree = mori.toClj(routeTree);
         rootPath = rootPath || "";
         var routes = crux.emptyRoutes();
-        var built = crux.buildRouteTree(rootPath, mori.identity, routeTree);
+        var built = crux.buildRouteTree(rootPath, null, null, routeTree);
         return mori.reduce(function(routes, route) {
             var key = mori.first(route);
             var method = mori.nth(route, 1);
@@ -153,15 +176,26 @@ var crux = {
         return function(req, res, next) {
             next = next || mori.identity;
             var orderedRoutes = mori.get(routes, ":order");
+            debugger;
             var match = crux.findFirst(mori.partial(crux.routeMatches, req), orderedRoutes);
             if (match) {
                 var route = mori.get(match, 0);
-                var params = mori.get(match, 1);
+                var keys  = mori.getIn(route, [":route", ":keys"]);
+                var result = mori.get(match, 1);
+                var params = mori.rest(result);
 
-                // stuff params into req.params
+                // What is the "legal" way to push things into req.params?
+                // TODO: this is kind of bent - almost certainly not 100% correct
+                if (params && !mori.isEmpty(params)) {
+                    var jsParams = mori.toJs(params);
+                    jsParams.forEach(function(p, i) {
+                        var key = keys[i];
+                        req.params[key.name] = p;
+                    });
+                }
                 var action = mori.get(route, ":action", defaultAction);
                 if (action) {
-                    action.call(null, req, res, next);
+                    return action.call(null, req, res, next);
                 }
             }
             return res.status(404);
