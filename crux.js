@@ -108,12 +108,10 @@ var crux = {
         fullPath = fullPath.replace(/\/$/, "");
         var float = mori.get(action, ":float");
         var sink = mori.get(action, ":sink");
-        debugger;
         var floated = crux.pipeline(float, pre);
         var sunk = crux.pipeline(post, sunk);
         var children = crux.buildRouteTree(fullPath, floated, sunk, subroutes);
         var actions = crux._actionMethods(action);
-        debugger;
         var routes = mori.map(
             function(stuff) {
                 var method = mori.first(stuff);
@@ -151,7 +149,7 @@ var crux = {
     // If you're not using express or some other system to match
     // URLs to routes, then we can do it for you:
     routeMatches: function(req, route) {
-        var requestMethod = _keywordise(req.method || ":get");
+        var requestMethod = _keywordise((req.method || ":get").toLowerCase());
         var compiledRoute = mori.get(route, ":route");
         var method = mori.get(route, ":method");
 
@@ -194,6 +192,7 @@ var crux = {
                     });
                 }
                 var action = mori.get(route, ":action", defaultAction);
+                debugger;
                 if (action) {
                     return action.call(null, req, res, next);
                 }
