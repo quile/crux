@@ -20,13 +20,13 @@ Crux uses a data-driven routing defintion approach.  Routes are given as a
 vector of route definitions.  Every route definition has the following form:
 
 ```javascript
-["/path/to/match" "identifying-key" handler-fn [optional-child-routes]]
+["/path/to/match", "identifying-key", handler-fn, [optional-child-routes]]
 ```
 
 Variables in paths can be specified with a `:keyword`:
 
 ```javascript
-["/path/with/:variable" "identifying-key" handler-fn [optional-child-routes]]
+["/path/with/:variable", "identifying-key", handler-fn, [optional-child-routes]]
 
 ```
 
@@ -106,12 +106,15 @@ Handlers can be scoped to different request methods:
 */
 ```
 
-### Subtree Middleware
+### Subtree Pipelines
 
-You can define middleware for a path and all subpaths relative to that path (the **subtree**).  Because middleware forms a stack around the original handler, there are two different ways to add it to the three:  **float** and **sink**.  If you **float** the middleware, it will compose itself at the outermost layer of middleware currently defined for that handler.  Since each path can inherit middleware from paths above it, this stack can grow arbitrarily deep.  If you **sink** the middleware, it will go to the bottom of this stack (ie. run right before the handler).  If deeper down another middleware is sunk, it will go inside even this one.  
+You can define handlers to run at certain points in your routing tree, and all sub-routes will inherit those
+handlers.  In order to specify whether or not the handler should run before or after the route handler itself,
+you can either "float" or "sink" the handler.  A handler that is "floated" runs before the handler, and
+a handler that is "sunk" runs after it.
 
 ```javascript
-/*
+/*   # EXAMPLE TO COME - this is a polaris example
 (defn ocean-rock
   [request]
   {:status 200
