@@ -8,6 +8,10 @@ Routing defined by data.
 
 Also, provides reverse routing for building urls from parameters!
 
+[Crux](https://github.com/quile/crux) is based on the excellent Clojure router
+[Polaris](https://github.com/caribou/polaris), which is part of the
+[Caribou](http://let-caribou.in) ecosystem.
+
 ## Installation
 
 Using npm:
