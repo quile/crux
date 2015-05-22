@@ -1,6 +1,27 @@
-var mori   = require("mori");
-var parser = require("path-to-regexp");
-var util   = require("util");
+/* =====================================================
+ crux - requests guided by the constellations
+
+   Crux is sensible, composable, data-driven routing.
+   It is entirely based on the excellent Clojure
+   router called "Polaris", which is part of the
+   "Caribou" ecosystem.
+
+   caribou: http://let-caribou.in
+   polaris: https://github.com/caribou/polaris
+
+   It is not possible to entirely mimic the behaviour
+   of polaris, as Clojure web routing is not asynchronous
+   and involves the concept of "middleware", that wraps
+   functions that handle web requests.  Instead, crux
+   uses the concept of a middleware pipeline.
+
+   (c) Kyle Dawkins, 2015
+   ===================================================== */
+
+var mori        = require("mori");
+var parser      = require("path-to-regexp");
+var util        = require("util");
+var querystring = require("querystring");
 
 function newRoute(key, method, path, route, action) {
     return mori.hashMap(":key", key,
@@ -43,10 +64,6 @@ var crux = {
         return _keywordise(method.toLowerCase());
     },
 
-    enslashRoute: function(route) {
-       // add a slash to the route regexp
-    },
-
     compileRoute: function(path) {
         var keys = [];
         var re = parser(path, keys);
@@ -81,6 +98,9 @@ var crux = {
 
     pipeline: function() {
         var funcs = mori.filter(mori.identity, mori.primSeq(arguments));
+        if (mori.count(funcs) === 0) {
+            return null;
+        }
         if (mori.count(funcs) === 1) {
             return mori.first(funcs);
         }
@@ -109,7 +129,7 @@ var crux = {
         var float = mori.get(action, ":float");
         var sink = mori.get(action, ":sink");
         var floated = crux.pipeline(float, pre);
-        var sunk = crux.pipeline(post, sunk);
+        var sunk = crux.pipeline(post, sink);
         var children = crux.buildRouteTree(fullPath, floated, sunk, subroutes);
         var actions = crux._actionMethods(action);
         var routes = mori.map(
@@ -125,10 +145,8 @@ var crux = {
 
     buildRouteTree: function(rootPath, pre, post, routeTree) {
         var partial = function(route) {
-            //console.log(route);
             return crux.buildRoute(rootPath, pre, post, route);
         };
-        //console.log(">>> ");
         return mori.mapcat(partial, routeTree);
     },
 
@@ -174,7 +192,6 @@ var crux = {
         return function(req, res, next) {
             next = next || mori.identity;
             var orderedRoutes = mori.get(routes, ":order");
-            debugger;
             var match = crux.findFirst(mori.partial(crux.routeMatches, req), orderedRoutes);
             if (match) {
                 var route = mori.get(match, 0);
@@ -192,61 +209,55 @@ var crux = {
                     });
                 }
                 var action = mori.get(route, ":action", defaultAction);
-                debugger;
                 if (action) {
                     return action.call(null, req, res, next);
                 }
             }
             return res.status(404);
         };
+    },
+
+    _getPath: function(routes, key) {
+        var val = mori.getIn(routes, mori.vector(":mapping", _keywordise(key), ":path")) || null;
+        if (!val) { throw new Error("Route for " + key + " not found"); }
+        return val;
+    },
+
+    sortRouteParams: function(routes, key, params) {
+        var path = crux._getPath(routes, key);
+        var optKeys = mori.keys(params);
+        var pathParts = path.split(/\//);
+        var routeKeys = mori.map(_unkeywordise, mori.filter(function(p) {
+            return p.match(/^\:/);
+        }, mori.primSeq(pathParts)));
+        var queryKeys = mori.remove(mori.into(mori.set(), routeKeys), optKeys);
+        return mori.hashMap(":path", path,
+                            ":route", mori.selectKeys(params, routeKeys),
+                            ":query", mori.selectKeys(params, queryKeys));
+    },
+
+    reverseRoute: function(routes, key, params, options) {
+        params = params || {};
+        options = options || {};
+        var mparams = mori.toClj(params);
+        var gripped = crux.sortRouteParams(routes, key, mparams);
+        var path = mori.get(gripped, ":path");
+        var routeMatches = mori.get(gripped, ":route");
+        var queryMatches = mori.get(gripped, ":query");
+        var optKeys = mori.keys(mparams);
+        debugger;
+        var base = mori.reduce(function(s, rep) {
+            return s.replace(_keywordise(rep), params[rep]);
+        }, path, mori.keys(routeMatches));
+        var query = "";
+        if (!options["noQuery"]) {
+            query = querystring.stringify(mori.toJs(queryMatches));
+            if (query.length) {
+                query = "?" + query;
+            }
+        }
+        return base + query;
     }
-
-// (defn- get-path
-//   [routes key]
-//   (or
-//    (get-in routes [:mapping (keyword key) :path])
-//    (throw (new Exception (str "route for " key " not found")))))
-
-// (defn sort-route-params
-//   [routes key params]
-//   (let [path (get-path routes key)
-//         opt-keys (keys params)
-//         route-keys (map
-//                     read-string
-//                     (filter
-//                      #(= (first %) \:)
-//                      (string/split path #"/")))
-//         query-keys (remove (into #{} route-keys) opt-keys)]
-//     {:path path
-//      :route (select-keys params route-keys)
-//      :query (select-keys params query-keys)}))
-
-// (defn query-item
-//   [[k v]]
-//   (str
-//    (codec/form-encode (name k))
-//    "="
-//    (codec/form-encode v)))
-
-// (defn build-query-string
-//   [params query-keys]
-//   (let [query (string/join "&" (map query-item (select-keys params query-keys)))]
-//     (and (seq query) (str "?" query))))
-
-// (defn reverse-route
-//   ([routes key params] (reverse-route routes key params {}))
-//   ([routes key params opts]
-//      (let [{path :path
-//             route-matches :route
-//             query-matches :query} (sort-route-params routes key params)
-//             route-keys (keys route-matches)
-//             query-keys (keys query-matches)
-//             opt-keys (keys params)
-//             base (reduce
-//                   #(string/replace-first %1 (str (keyword %2)) (get params %2))
-//                   path opt-keys)
-//             query (if-not (:no-query opts) (build-query-string params query-keys))]
-//        (str base query))))
 };
 
 module.exports = crux;
