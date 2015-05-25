@@ -15,7 +15,8 @@
     "routes",
     "reverse-routing",
     "route-building",
-    "url-building"
+    "url-building",
+    "express"
   ],
   "author": "Kyle Dawkins <info@kyledawkins.com>",
   "license": "MIT",
