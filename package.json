@@ -1,7 +1,7 @@
 {
-  "name": "crux",
+  "name": "crux-router",
   "version": "0.1.0",
-  "description": "Awesome yet simple routing by the constellations",
+  "description": "Awesome yet simple routing, guided by the constellations",
   "main": "crux.js",
   "scripts": {
     "test": "mocha"
