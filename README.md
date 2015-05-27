@@ -16,7 +16,7 @@ Also, provides reverse routing for building urls from parameters!
 
 Using npm:
 
-    npm install --save crux
+    npm install --save crux-router
 
 ## Usage
 
