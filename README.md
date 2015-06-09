@@ -76,13 +76,13 @@ Child routes inherit their path from their parent, so for the above routes the
 following request would work:
 
 ```javascript
-//(handler {:uri "/base-path/sub-path/yellow"}) ;; ---> {:status 200 :body "We received yellow"}
+//handler({ url: "/base-path/sub-path/yellow" }, res, next) ---> "We received yellow"
 ```
 
 Route matching works with or without following slashes:
 
 ```javascript
-//(handler {:uri "/base-path/sub-path/chartreuse/"}) ;; ---> {:status 200 :body "We received chartreuse"}
+//handler({ url: "/base-path/sub-path/chartreuse/" }, res, next) ---> "We received chartreuse"
 ```
 
 Handlers can be scoped to different request methods:
