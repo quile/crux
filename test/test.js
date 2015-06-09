@@ -7,49 +7,41 @@ var crux = require("../crux");
 var actions = {
     home: function(req, res, next) {
         res.send("YOU ARE HOME");
-        //console.log("home");
         next();
     },
 
     child: function(req, res, next) {
         res.send("child playing with routers");
-        //console.log("child");
         next();
     },
 
     grandchild: function(req, res, next) {
         res.send(req.params["face"] + " contains wisdom");
-        //console.log("grandchild");
         next();
     },
 
     sibling: function(req, res, next) {
         res.send("there is a " + req.params["hand"]);
-        //console.log("sibling");
         next();
     },
 
     parallel: function(req, res, next) {
         res.send("ALTERNATE DIMENsion ---------");
-        //console.log("parallel");
         next();
     },
 
     lellarap: function(req, res, next) {
         res.send("--------- noisNEMID ETANRETLA");
-        //console.log("lellarap");
         next();
     },
 
     orthogonal: function(req, res, next) {
         res.send("ORTHOGONAL TO " + req.params["vector"]);
-        //console.log("orthogonal");
         next();
     },
 
     perpendicular: function(req, res, next) {
         res.send(req.params["tensor"] + " IS PERPENDICULAR TO " + req.params["manifold"]);
-        //console.log("perpendicular");
         next();
     },
 
@@ -61,7 +53,6 @@ var actions = {
     wrapper: function(req, res, next) {
         // increment the status
         res.status(res._getStatusCode() + 1);
-        //console.log("wrapper");
         next();
     },
 
@@ -144,7 +135,6 @@ describe("router", function() {
             if (test.res.body) {
                 assert.equal(test.res.body, res._getData());
             }
-            //console.log(test);
         });
     });
 
@@ -164,35 +154,55 @@ describe("router", function() {
     });
 });
 
-/*
-(defn ocean-rock
-  [request]
-  {:status 200
-   :body "An ocean rock"})
+var pipeline = {
+    oceanRock: function(req, res, next) {
+        res.write("An ocean rock");
+        next();
+    },
 
-(defn sea-floor
-  [request]
-  {:status 200
-   :body "A sandy sea floor"})
+    seaFloor: function(req, res, next) {
+        res.write("A sandy sea floor");
+        next();
+    },
 
-(defn anemone
-  [app]
-  (fn [request]
-    (update-in (app request) [:body] #(str % " covered in anemone"))))
+    anemone: function(req, res, next) {
+        res.write(" covered in anemone");
+        next();
+    },
 
-(defn boat
-  [app]
-  (fn [request]
-    (update-in (app request) [:body] #(str % " underneath a small boat"))))
+    whatYouSee: function(req, res, next) {
+        res.write("You see: ");
+        next();
+    },
 
-(def sea-routes
-  [["/ocean" :ocean {:ALL ocean-rock :sink anemone :float boat}
-    [["/floor" :floor sea-floor]]]])
+    boat: function(req, res, next) {
+        res.write(" underneath a small boat");
+        next();
+    }
+};
 
-(deftest sea-routes-test
-  (let [routes (polaris.core/build-routes sea-routes)
-        handler (polaris.core/router routes)]
-    (is (= "An ocean rock covered in anemone underneath a small boat" (:body (handler {:uri "/ocean"}))))
-    (is (= "A sandy sea floor covered in anemone underneath a small boat" (:body (handler {:uri "/ocean/floor"}))))))
-*/
+var seaRoutes = [["/ocean", ":ocean", { ":all": pipeline.oceanRock,
+                                        ":sink": pipeline.anemone,
+                                        ":float": pipeline.whatYouSee },
+                  [["/floor", ":floor", { ":all": pipeline.seaFloor,
+                                          ":sink": pipeline.boat }]]]];
+
+describe("pipeline", function() {
+    it("nests floated and sunk handlers correctly", function() {
+        var built = crux.buildRoutes(seaRoutes);
+        var handler = crux.router(built);
+
+        var req = mhttp.createRequest({url: "/ocean"});
+        var res = mhttp.createResponse();
+        handler(req, res);
+
+        assert.equal("You see: An ocean rock covered in anemone", res._getData());
+
+        req = mhttp.createRequest({url: "/ocean/floor"});
+        res = mhttp.createResponse();
+        handler(req, res);
+
+        assert.equal("You see: A sandy sea floor covered in anemone underneath a small boat", res._getData());
+    });
+});
 
