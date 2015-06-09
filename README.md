@@ -20,6 +20,12 @@ Using npm:
 
 ## Usage
 
+First, load the module using `require`:
+
+```javascript
+var crux = require("crux");
+```
+
 Crux uses a data-driven routing defintion approach.  Routes are given as a
 vector of route definitions.  Every route definition has the following form:
 
