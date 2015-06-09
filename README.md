@@ -88,32 +88,29 @@ Route matching works with or without following slashes:
 Handlers can be scoped to different request methods:
 
 ```javascript
-/*
-(defn get-handler
-  [request]
-  {:status 200
-   :body "The method defaults to GET"})
+var getHandler = function(req, res, next) {
+    res.send("The method defaults to GET");
+    next();
+};
 
-(defn post-handler
-  [request]
-  {:status 200
-   :body "This is a POST"})
+var postHandler = function(req, res, next) {
+    res.send("This is a POST");
+    next();
+};
 
-(defn delete-handler
-  [request]
-  {:status 200
-   :body "DELETED!!"})
+var deleteHandler = function(req, res, next) {
+    res.send("DELETED!!");
+    next();
+};
 
-(def route-definitions
-  [["/method-sensitive" :base {:GET base-handler :POST post-handler :DELETE delete-handler}]])
+var routes = [["/method-sensitive", "base", { "GET": getHandler, "POST": postHandler, "DELETE", deleteHandler }]];
 
-(def routes (polaris.core/build-routes route-definitions))
-(def handler (polaris.core/router routes))
+var built = crux.buildRoutes(routes);
+var handler = crux.router(built);
 
-(handler {:uri "/method-sensitive"}) ;; ---> {:status 200 :body "The method defaults to GET"}
-(handler {:uri "/method-sensitive" :request-method :post}) ;; --> {:status 200 :body "This is a POST"}
-(handler {:uri "/method-sensitive" :request-method :delete}) ;; --> {:status 200 :body "DELETED!!"}
-*/
+handler({ url: "/method-sensitive" }) --> "The method defaults to GET"
+handler({ url: "/method-sensitive", method: "POST"}) --> "This is a POST"
+handler({ url: "/method-sensitive", method: "DELETE"}) --> "DELETED!!"
 ```
 
 ### Subtree Pipelines
