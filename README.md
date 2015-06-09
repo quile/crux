@@ -124,37 +124,44 @@ you can either "float" or "sink" the handler.  A handler that is "floated" runs 
 a handler that is "sunk" runs after it.
 
 ```javascript
-/*   # EXAMPLE TO COME - this is a polaris example
-(defn ocean-rock
-  [request]
-  {:status 200
-   :body "An ocean rock"})
+var pipeline = {
+    oceanRock: function(req, res, next) {
+        res.write("An ocean rock");
+        next();
+    },
 
-(defn sea-floor
-  [request]
-  {:status 200
-   :body "A sandy sea floor"})
+    seaFloor: function(req, res, next) {
+        res.write("A sandy sea floor");
+        next();
+    },
 
-(defn anemone
-  [app]
-  (fn [request]
-    (update-in (app request) [:body] #(str % " covered in anemone"))))
+    anemone: function(req, res, next) {
+        res.write(" covered in anemone");
+        next();
+    },
 
-(defn boat
-  [app]
-  (fn [request]
-    (update-in (app request) [:body] #(str % " underneath a small boat"))))
+    whatYouSee: function(req, res, next) {
+        res.write("You see: ");
+        next();
+    },
 
-(def sea-routes
-  [["/ocean" :ocean {:ALL ocean-rock :sink anemone :float boat}
-    [["/floor" :floor sea-floor]]]])
+    boat: function(req, res, next) {
+        res.write(" underneath a small boat");
+        next();
+    }
+};
 
-(def routes (polaris.core/build-routes sea-routes))
-(def handler (polaris.core/router routes))
+var seaRoutes = [["/ocean", ":ocean", { ":all": pipeline.oceanRock,
+                                        ":sink": pipeline.anemone,
+                                        ":float": pipeline.whatYouSee },
+                  [["/floor", ":floor", { ":all": pipeline.seaFloor,
+                                          ":sink": pipeline.boat }]]]];
 
-(handler {:uri "/ocean"}) ;; ---> {:status 200 :body "An ocean rock covered in anemone underneath a small boat"}
-(handler {:uri "/ocean/floor"}) ;; ---> {:status 200 :body "A sandy sea floor covered in anemone underneath a small boat"}
-*/
+var built = crux.buildRoutes(seaRoutes);
+var handler = crux.router(built);
+
+handler({ url: "/ocean" }, res, next); ---> "You see: An ocean rock covered in anemone"
+handler({ url: "/ocean/floot" }, res, next); ---> "You see: A sandy sea floor covered in anemone underneath a small boat"
 ```
 
 ### Reverse Routing
