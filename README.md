@@ -26,8 +26,8 @@ First, load the module using `require`:
 var crux = require("crux");
 ```
 
-Crux uses a data-driven routing defintion approach.  Routes are given as a
-vector of route definitions.  Every route definition has the following form:
+Crux uses a data-driven routing definition approach.  Routes are given as an
+array of route definitions.  Every route definition has the following form:
 
 ```javascript
 ["/path/to/match", "identifying-key", handler-fn, [optional-child-routes]]
@@ -158,7 +158,7 @@ var built = crux.buildRoutes(seaRoutes);
 var handler = crux.router(built);
 
 handler({ url: "/ocean" }, res, next); ---> "You see: An ocean rock covered in anemone"
-handler({ url: "/ocean/floot" }, res, next); ---> "You see: A sandy sea floor covered in anemone underneath a small boat"
+handler({ url: "/ocean/floor" }, res, next); ---> "You see: A sandy sea floor covered in anemone underneath a small boat"
 ```
 
 ### Reverse Routing
