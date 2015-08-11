@@ -23,7 +23,7 @@ Using npm:
 First, load the module using `require`:
 
 ```javascript
-var crux = require("crux");
+var crux = require("crux-router");
 ```
 
 Crux uses a data-driven routing definition approach.  Routes are given as an
